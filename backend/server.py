@@ -48,6 +48,8 @@ async def chat(request: ChatRequest) -> ChatResponse:
     # TODO: Add your AI/LLM integration here
     # For now, we'll return a simple response based on the message
     user_message = request.current_message.lower()
+
+
     
     # Simple golf caddy responses (replace with actual AI later)
     if "club" in user_message:
