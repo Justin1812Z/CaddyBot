@@ -1,10 +1,24 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from typing import List
+from models import *
+from pydantic_ai import Agent
 import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
+
+agent = Agent(
+    # FIX: 'gemini-2.5-pro' does not exist. Using 'gemini-1.5-flash' which is the current fast model.
+    # Ensure GOOGLE_API_KEY is set in .env
+    model="google-gla:gemini-flash-latest",
+    system_prompt="You are a golf caddy that helps players improve their game."
+)
+
 
 app = FastAPI()
+
+shots = []
 
 # CORS Configuration - Allows frontend to communicate with backend
 app.add_middleware(
@@ -14,21 +28,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Request/Response Models
-class Message(BaseModel):
-    role: str  # 'user' or 'assistant'
-    message: str
-    timestamp: str
-
-class ChatRequest(BaseModel):
-    messages: List[Message]  # Full conversation history
-    current_message: str  # The latest user message
-
-class ChatResponse(BaseModel):
-    role: str
-    message: str
-    timestamp: str
+    
+    
+    
+    
 
 @app.get("/")
 async def root():
@@ -68,4 +71,21 @@ async def chat(request: ChatRequest) -> ChatResponse:
         message=response_text,
         timestamp=datetime.datetime.now().isoformat()
     )
+
+@app.post("/save")
+async def save(request: shotResult) -> List[shotResult]:
+    shots.append(request)
+    return shots
+
+@app.post("/smart")
+async def smart(string: str) -> str:
+    # FIX: agent.run is an async method and must be awaited
+    try:
+        response = await agent.run(string)
+        # FIX: response is a result object, return the data (text) content
+        return response.output
+    except Exception as e:
+        # detailed error logging
+        print(f"Error in smart endpoint: {e}")
+        return f"Error processing request: {str(e)}"
 
